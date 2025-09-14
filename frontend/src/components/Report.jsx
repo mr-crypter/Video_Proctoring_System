@@ -132,7 +132,11 @@ export default function Report({ candidateId, onBack }) {
               <strong>Recorded Interview</strong>
             </CardHeader>
             <CardContent>
-              <video controls src={report.videoFileUrl} width={560} />
+              {(() => {
+                const apiBase = (process.env.REACT_APP_API_URL || '').replace(/\/$/, '');
+                const videoUrl = report.videoFileUrl.startsWith('/api') ? `${apiBase}${report.videoFileUrl}` : report.videoFileUrl;
+                return <video controls src={videoUrl} width={560} />;
+              })()}
             </CardContent>
           </Card>
         )}

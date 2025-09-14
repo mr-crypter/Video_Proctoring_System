@@ -13,6 +13,7 @@ const CandidateSchema = new mongoose.Schema({
   startTime: { type: Date, default: Date.now },
   endTime: { type: Date },
   videoFileUrl: { type: String },
+  videoFileId: { type: mongoose.Schema.Types.ObjectId },
   events: { type: [EventSchema], default: [] }
 });
 

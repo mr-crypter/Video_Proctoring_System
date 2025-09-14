@@ -1,23 +1,9 @@
 import express from "express";
-import { logEvent, getReport, endInterview, createCandidate, startInterview } from "../controllers/candidateController.js";
+import { logEvent, getReport, endInterview, createCandidate, startInterview, uploadVideoToGridFS, streamVideoFromGridFS } from "../controllers/candidateController.js";
 import multer from 'multer';
-import path from 'path';
-import fs from 'fs';
 
-const uploadsDir = path.resolve('uploads');
-if (!fs.existsSync(uploadsDir)) fs.mkdirSync(uploadsDir, { recursive: true });
-
-const storage = multer.diskStorage({
-  destination: function (req, file, cb) {
-    cb(null, uploadsDir);
-  },
-  filename: function (req, file, cb) {
-    const ext = path.extname(file.originalname) || '.webm';
-    cb(null, `${req.params.candidateId}-${Date.now()}${ext}`);
-  }
-});
-
-const upload = multer({ storage });
+// Use memory storage; we will pipe to GridFSBucket
+const upload = multer({ storage: multer.memoryStorage() });
 
 const router = express.Router();
 
@@ -33,17 +19,11 @@ router.post('/end/:candidateId', endInterview);
 // Start interview (set current session start time)
 router.post('/start/:candidateId', startInterview);
 
-// Upload interview video
-router.post('/upload-video/:candidateId', upload.single('video'), async (req, res) => {
-  try {
-    const { candidateId } = req.params;
-    const fileUrl = `/uploads/${req.file.filename}`;
-    await (await import('../models/Candidate.js')).Candidate.findByIdAndUpdate(candidateId, { videoFileUrl: fileUrl });
-    return res.send({ success: true, fileUrl });
-  } catch (error) {
-    return res.status(500).send({ success: false, message: 'Failed to upload video', error: error.message });
-  }
-});
+// Upload interview video to GridFS
+router.post('/upload-video/:candidateId', upload.single('video'), uploadVideoToGridFS);
+
+// Stream video from GridFS
+router.get('/video/:candidateId', streamVideoFromGridFS);
 
 // Create candidate
 router.post('/candidate', createCandidate);

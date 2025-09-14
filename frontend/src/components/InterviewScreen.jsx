@@ -11,6 +11,7 @@ export default function InterviewScreen({ candidateId, onCompleted }) {
   const mediaRecorderRef = useRef(null);
   const recordedChunksRef = useRef([]);
   const streamRef = useRef(null);
+  const isMountedRef = useRef(true);
   const [logs, setLogs] = useState([]);
 
   // Threshold timers state
@@ -100,6 +101,7 @@ export default function InterviewScreen({ candidateId, onCompleted }) {
   };
 
   useEffect(() => {
+    isMountedRef.current = true;
     const init = async () => {
       try { await startInterviewApi(candidateId); } catch (_) {}
       const MODEL_URL = process.env.REACT_APP_FACEAPI_MODELS_URL || "/models";
@@ -118,8 +120,14 @@ export default function InterviewScreen({ candidateId, onCompleted }) {
         }
       });
       streamRef.current = stream;
-      videoRef.current.srcObject = stream;
-      try { await videoRef.current.play(); } catch (_) {}
+      if (!isMountedRef.current || !videoRef.current) {
+        try { stream.getTracks().forEach(t => t.stop()); } catch (_) {}
+        return;
+      }
+      if (videoRef.current) {
+        videoRef.current.srcObject = stream;
+        try { await videoRef.current.play(); } catch (_) {}
+      }
       if (videoRef.current && videoRef.current.readyState < 2) {
         await new Promise((resolve) => {
           const handler = () => { resolve(); };
@@ -240,7 +248,7 @@ export default function InterviewScreen({ candidateId, onCompleted }) {
 
         // Audio detection runs in a separate faster interval for responsiveness
 
-      const objects = await detectObjects(videoRef.current);
+      const objects = videoRef.current ? await detectObjects(videoRef.current) : [];
         for (const obj of objects) {
           const normalized = obj.class.toLowerCase();
           if (["cell phone", "book", "laptop", "phone"].includes(normalized)) {
@@ -350,6 +358,7 @@ export default function InterviewScreen({ candidateId, onCompleted }) {
 
     init();
     return () => {
+      isMountedRef.current = false;
       // Cleanup audio resume listeners
       if (audioContextRef.current && audioContextRef.current._cleanupResume) {
         audioContextRef.current._cleanupResume();
@@ -383,24 +392,61 @@ export default function InterviewScreen({ candidateId, onCompleted }) {
       const recorder = mediaRecorderRef.current;
 
       if (recorder && recorder.state === 'recording') {
-        try { recorder.requestData(); } catch (_) {}
+        try { 
+          recorder.requestData(); 
+        } catch (_) {}
+        
         await new Promise((resolve) => {
           recorder.onstop = resolve;
           recorder.stop();
         });
       }
 
+      // Pre-stop detection loops and media to avoid races on unmount/navigation
+      if (intervalRef.current) {
+        clearInterval(intervalRef.current);
+        intervalRef.current = null;
+      }
+      if (audioIntervalRef.current) {
+        clearInterval(audioIntervalRef.current);
+        audioIntervalRef.current = null;
+      }
+      if (audioContextRef.current) {
+        try { audioContextRef.current.close(); } catch (_) {}
+      }
+      if (streamRef.current) {
+        try { streamRef.current.getTracks().forEach(t => t.stop()); } catch (_) {}
+        streamRef.current = null;
+      }
+      if (videoRef.current) {
+        try { videoRef.current.srcObject = null; } catch (_) {}
+      }
+
+      // Upload video if chunks exist
       if (recordedChunksRef.current.length > 0) {
-        const type = (mediaRecorderRef.current && mediaRecorderRef.current.mimeType) || 'video/webm';
-        const blob = new Blob(recordedChunksRef.current, { type });
-        const file = new File([blob], `${candidateId}-${Date.now()}.webm`, { type });
-        await uploadVideo(candidateId, file);
+        console.log('Uploading video with', recordedChunksRef.current.length, 'chunks');
+        
+        const mimeType = (mediaRecorderRef.current && mediaRecorderRef.current.mimeType) || 'video/webm';
+        const videoBlob = new Blob(recordedChunksRef.current, { type: mimeType });
+        
+        console.log('Created video blob:', videoBlob.size, 'bytes');
+        
+        try {
+          const uploadResult = await uploadVideo(candidateId, videoBlob);
+          console.log('Video upload completed:', uploadResult);
+        } catch (uploadError) {
+          console.error('Video upload failed:', uploadError);
+          // Continue with interview end even if upload fails
+        }
+      } else {
+        console.warn('No video chunks to upload');
       }
 
       await endInterviewApi(candidateId);
       if (typeof onCompleted === 'function') onCompleted();
+      
     } catch (e) {
-      console.error(e);
+      console.error('End interview error:', e);
     } finally {
       setEnding(false);
     }
