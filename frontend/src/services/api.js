@@ -1,4 +1,12 @@
-const BASE_URL = process.env.REACT_APP_API_URL || "http://localhost:5000/api";
+// Normalize API base: allow REACT_APP_API_URL to be backend origin (no trailing /api)
+const BASE_URL = (() => {
+  const raw = process.env.REACT_APP_API_URL;
+  if (raw && typeof raw === 'string') {
+    const origin = raw.replace(/\/$/, '');
+    return `${origin}/api`;
+  }
+  return "http://localhost:5000/api";
+})();
 
 export async function logEvent(candidateId, payload) {
   await fetch(`${BASE_URL}/log/${candidateId}`, {
