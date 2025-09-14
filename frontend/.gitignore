@@ -70,10 +70,8 @@ storybook-static/
 # Uncomment the line below if you don't want to commit output.css
 # src/output.css
 
-# Face detection models (large files)
-public/models/*.bin
-public/models/*.json
-!public/models/.gitkeep
+# Face detection models (ensure they are deployed with the app)
+# (Do not ignore model files so Vercel serves them from /models)
 
 # Service worker
 sw.js
