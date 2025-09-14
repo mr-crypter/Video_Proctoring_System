@@ -1,0 +1,21 @@
+{
+  "name": "video-proctoring",
+  "private": true,
+  "type": "module",
+  "workspaces": [
+    "backend",
+    "frontend"
+  ],
+  "scripts": {
+    "install:all": "npm install --workspaces",
+    "dev:backend": "npm run dev --workspace backend",
+    "dev:frontend": "npm start --workspace frontend",
+    "dev": "concurrently \"npm:dev:backend\" \"npm:dev:frontend\"",
+    "seed": "node scripts/seedCandidates.js"
+  },
+  "devDependencies": {
+    "concurrently": "^9.1.2"
+  }
+}
+
+

@@ -1,0 +1,2 @@
+# Keep this directory in git but ignore its contents
+# This ensures the uploads directory exists for the application
