@@ -131,10 +131,15 @@ export async function uploadVideoToGridFS(req, res) {
 
     const bucket = getGridFSBucket();
     const filename = `${candidateId}-${Date.now()}.webm`;
+    const rawType = req.file.mimetype || 'video/webm';
+    const cleanType = typeof rawType === 'string' ? rawType.split(';')[0] : 'video/webm';
+    try {
+      console.log(`[Upload] candidate=${candidateId} bytes=${req.file.size || req.file.buffer?.length || 0} type=${cleanType}`);
+    } catch (_) {}
     const uploadStream = bucket.openUploadStream(filename, {
       metadata: {
         candidateId,
-        contentType: req.file.mimetype || 'video/webm'
+        contentType: cleanType
       }
     });
 
@@ -150,6 +155,7 @@ export async function uploadVideoToGridFS(req, res) {
           { videoFileId: fileId },
           { new: true }
         );
+        try { console.log(`[Upload] stored fileId=${fileId?.toString?.()} name=${filename}`); } catch (_) {}
         return res.send({ success: true, fileId: fileId?.toString?.() || null, filename });
       } catch (e) {
         return res.status(500).send({ success: false, message: 'Failed to persist video reference', error: e.message });
@@ -180,8 +186,12 @@ export async function streamVideoFromGridFS(req, res) {
     }
     const file = files[0];
     const range = req.headers.range;
+    try { console.log(`[Stream] candidate=${candidateId} range=${range || 'none'} size=${file.length}`); } catch (_) {}
+    const contentType = (file.metadata && typeof file.metadata.contentType === 'string')
+      ? file.metadata.contentType.split(';')[0]
+      : 'video/webm';
     res.set({
-      'Content-Type': file.metadata?.contentType || 'video/webm',
+      'Content-Type': contentType,
       'Accept-Ranges': 'bytes',
       'Content-Disposition': `inline; filename="${file.filename}"`
     });
@@ -196,6 +206,8 @@ export async function streamVideoFromGridFS(req, res) {
       stream.on('error', () => { if (!res.headersSent) res.sendStatus(500); });
       return stream.pipe(res);
     }
+    // No range: include Content-Length for better compatibility
+    res.set({ 'Content-Length': file.length });
     const stream = bucket.openDownloadStream(fileId);
     stream.on('error', () => { if (!res.headersSent) res.sendStatus(500); });
     return stream.pipe(res);

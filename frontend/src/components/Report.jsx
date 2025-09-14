@@ -133,9 +133,20 @@ export default function Report({ candidateId, onBack }) {
             </CardHeader>
             <CardContent>
               {(() => {
-                const apiBase = (process.env.REACT_APP_API_URL || '').replace(/\/$/, '');
+                const rawBase = (process.env.REACT_APP_API_URL || '');
+                const apiBase = rawBase.replace(/\/$/, '').replace(/\/api$/, '');
                 const videoUrl = report.videoFileUrl.startsWith('/api') ? `${apiBase}${report.videoFileUrl}` : report.videoFileUrl;
-                return <video controls src={videoUrl} width={560} />;
+                return (
+                  <>
+                    <video controls width={560} preload="metadata" style={{ display: 'block' }}>
+                      <source src={videoUrl} type="video/webm" />
+                      Your browser does not support video playback.
+                    </video>
+                    <div className="mt-2">
+                      <a href={videoUrl} target="_blank" rel="noreferrer" className="underline text-slate-600">Open video in new tab</a>
+                    </div>
+                  </>
+                );
               })()}
             </CardContent>
           </Card>
