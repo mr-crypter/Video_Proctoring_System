@@ -348,8 +348,15 @@ const MOUTH_OPEN_THRESHOLD = 0.28;
 1. **Environment Variables**
 ```env
 NODE_ENV=production
-MONGO_URI=mongodb+srv://user:pass@cluster.mongodb.net/video-proctoring-prod
 PORT=5000
+
+# Mongo
+MONGO_URI=mongodb+srv://user:pass@cluster.mongodb.net/video-proctoring-prod
+
+# CORS (comma-separated; use * to allow all in dev, not recommended in prod)
+CORS_ORIGINS=https://your-frontend.vercel.app,https://admin.yourdomain.com
+
+# Frontend (set in Vercel)
 REACT_APP_API_URL=https://your-backend-domain.com
 ```
 
