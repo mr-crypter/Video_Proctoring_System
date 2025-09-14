@@ -25,7 +25,7 @@ const corsOptions = {
   credentials: true,
 };
 
-app.options('(.*)', cors(corsOptions));
+// Express 5: rely on cors middleware only (no app.options route)
 app.use(cors(corsOptions));
 app.use(express.json());
 app.use('/uploads', express.static('uploads'));
