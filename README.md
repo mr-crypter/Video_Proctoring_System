@@ -69,8 +69,6 @@ video-proctoring/
 │       ├── index.js           # React entry point
 │       └── package.json
 │
-├── 📝 scripts/                # Database utilities
-│   └── seedCandidates.js      # Sample data seeding
 ├── 🔒 .env.example            # Environment template
 ├── 📋 package.json            # Workspace configuration
 └── 📖 README.md
@@ -179,7 +177,11 @@ npm run dev:frontend
 
 ### 6. Initialize Database (Optional)
 ```bash
-# Seed the database with sample data
+# Seed the database with sample data (from root directory)
+npm run seed
+
+# Or run directly from backend
+cd backend
 npm run seed
 ```
 
