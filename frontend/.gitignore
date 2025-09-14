@@ -1,0 +1,103 @@
+# Frontend specific .gitignore
+# See https://help.github.com/articles/ignoring-files/ for more about ignoring files.
+
+# Dependencies
+/node_modules
+/.pnp
+.pnp.js
+node_modules/
+
+# Testing
+/coverage
+.nyc_output
+
+# Production builds
+/build
+/dist
+
+# Environment variables
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+.env.*
+!.env.example
+
+# Logs
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+lerna-debug.log*
+
+# Runtime data
+pids/
+*.pid
+*.seed
+*.pid.lock
+
+# OS generated files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+desktop.ini
+
+# IDE and editors
+.vscode/
+!.vscode/settings.json
+!.vscode/extensions.json
+.idea/
+*.swp
+*.swo
+*~
+
+# Temporary files
+.tmp/
+.cache/
+.parcel-cache/
+
+# Storybook build outputs
+.out
+.storybook-out
+storybook-static/
+
+# Tailwind CSS output (if you want to ignore compiled CSS)
+# Uncomment the line below if you don't want to commit output.css
+# src/output.css
+
+# Face detection models (large files)
+public/models/*.bin
+public/models/*.json
+!public/models/.gitkeep
+
+# Service worker
+sw.js
+workbox-*.js
+
+# Bundle analyzer
+.next/analyze/
+
+# ESLint cache
+.eslintcache
+
+# Microbundle cache
+.rpt2_cache/
+.rts2_cache_cjs/
+.rts2_cache_es/
+.rts2_cache_umd/
+
+# Optional REPL history
+.node_repl_history
+
+# Lock files (keep package-lock.json)
+yarn.lock
+pnpm-lock.yaml
+
+# Deployment
+.vercel/
+.netlify/
