@@ -11,7 +11,7 @@
     "dev:backend": "npm run dev --workspace backend",
     "dev:frontend": "npm start --workspace frontend",
     "dev": "concurrently \"npm:dev:backend\" \"npm:dev:frontend\"",
-    "seed": "node scripts/seedCandidates.js"
+    "seed": "node backend/scripts/seedCandidates.js"
   },
   "devDependencies": {
     "concurrently": "^9.1.2"
