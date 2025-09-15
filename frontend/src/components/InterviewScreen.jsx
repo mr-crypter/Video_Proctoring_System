@@ -35,6 +35,7 @@ export default function InterviewScreen({ candidateId, onCompleted }) {
   const anyAudioStartRef = useRef(null);
   const recorderSessionIdRef = useRef(0);
   const lastDetectionsRef = useRef([]);
+  const lastMouthOpenTsRef = useRef(0);
 
   const logEvent = useCallback(async (event, deduction, label, bbox) => {
     const payload = { event, timestamp: new Date(), deduction, label, bbox };
@@ -319,16 +320,23 @@ export default function InterviewScreen({ candidateId, onCompleted }) {
 
         const AUDIO_RMS_THRESHOLD = 0.0016;
         const AUDIO_BAND_DB_THRESHOLD = -78;
-        const MOUTH_OPEN_THRESHOLD = 0.28;
+        const MOUTH_OPEN_THRESHOLD = 0.24; // slightly lower to better capture speaking
+        const MOUTH_RECENT_WINDOW_MS = 1200; // consider speech active if mouth open recently
         const nowTs = Date.now();
 
         const base = audioBaselineRef.current;
         const dynamicRmsThresh = base.rms != null ? Math.min(0.02, Math.max(0.0015, base.rms * 1.25)) : AUDIO_RMS_THRESHOLD;
         const dynamicDbThresh = base.db != null ? base.db + 0.5 : AUDIO_BAND_DB_THRESHOLD;
         const audioIsLoud = rms > dynamicRmsThresh || avgDbSpeechBand > dynamicDbThresh;
-        const mouthIsClosed = mouthOpenNorm < MOUTH_OPEN_THRESHOLD || !Number.isFinite(mouthOpenNorm);
+        const mouthIsOpen = Number.isFinite(mouthOpenNorm) && mouthOpenNorm >= MOUTH_OPEN_THRESHOLD;
+        if (mouthIsOpen) lastMouthOpenTsRef.current = nowTs;
+        const isLikelySpeaking = (nowTs - lastMouthOpenTsRef.current) < MOUTH_RECENT_WINDOW_MS;
+        const facePresentSingle = detections.length === 1;
 
-        if (audioIsLoud && mouthIsClosed) {
+        // During calibration window, avoid emitting audio events to reduce false positives
+        if (nowTs < calibrateUntilRef.current + 500) return;
+
+        if (audioIsLoud && !isLikelySpeaking && facePresentSingle) {
           if (!backgroundVoiceStartRef.current) backgroundVoiceStartRef.current = nowTs;
           if (nowTs - backgroundVoiceStartRef.current > 700 && nowTs - lastBackgroundVoiceLoggedRef.current > 5000) {
             await logEvent('SUSPICIOUS_AUDIO', 0, 'background_voice');
@@ -341,7 +349,8 @@ export default function InterviewScreen({ candidateId, onCompleted }) {
         const VERY_LOUD_RMS = Math.max(dynamicRmsThresh * 1.25, 0.004);
         const VERY_LOUD_DB = Math.max(dynamicDbThresh - 8, -68);
         const audioIsVeryLoud = rms > VERY_LOUD_RMS || avgDbSpeechBand > VERY_LOUD_DB;
-        if (audioIsVeryLoud) {
+        const notSingleFace = detections.length !== 1; // only escalate if candidate is not the sole face
+        if (audioIsVeryLoud && !isLikelySpeaking && notSingleFace) {
           if (!anyAudioStartRef.current) anyAudioStartRef.current = nowTs;
           if (nowTs - anyAudioStartRef.current > 600 && nowTs - lastBackgroundVoiceLoggedRef.current > 5000) {
             await logEvent('SUSPICIOUS_AUDIO', 0, 'loud_audio');
